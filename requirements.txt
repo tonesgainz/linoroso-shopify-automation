@@ -1,0 +1,68 @@
+# Core Dependencies
+anthropic>=0.18.0
+python-dotenv>=1.0.0
+requests>=2.31.0
+
+# Shopify Integration
+ShopifyAPI>=12.0.0
+
+# Data Processing
+pandas>=2.0.0
+numpy>=1.24.0
+openpyxl>=3.1.0
+
+# SEO & Content
+beautifulsoup4>=4.12.0
+serpapi>=0.1.0
+openai>=1.0.0  # Fallback for certain tasks
+
+# Social Media APIs
+# instagrapi>=2.0.0  # May have compatibility issues
+# TikTokApi>=5.3.0  # May have compatibility issues
+tweepy>=4.14.0
+
+# Email Marketing
+klaviyo-api>=1.0.0
+
+# Database
+pymysql>=1.1.0
+sqlalchemy>=2.0.0
+
+# Workflow Automation
+schedule>=1.2.0
+celery>=5.3.0
+redis>=5.0.0
+
+# Analytics
+# google-analytics-data>=0.17.0  # May have compatibility issues with Python 3.14
+# google-search-console>=0.1.0  # Package not available on PyPI - commented out
+
+# Web Scraping & Monitoring
+selenium>=4.15.0
+playwright>=1.40.0
+
+# Image Processing
+Pillow>=10.0.0
+imageio>=2.31.0
+
+# Natural Language Processing
+nltk>=3.8.0
+# spacy>=3.7.0  # Build issues with Python 3.14 - commented out temporarily
+textblob>=0.17.0
+
+# API Development
+fastapi>=0.104.0
+uvicorn>=0.24.0
+
+# Monitoring & Logging
+loguru>=0.7.0
+sentry-sdk>=1.38.0
+
+# Testing
+pytest>=7.4.0
+pytest-asyncio>=0.21.0
+
+# Utilities
+python-slugify>=8.0.0
+pyyaml>=6.0.0
+jinja2>=3.1.0
