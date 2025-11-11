@@ -11,9 +11,9 @@ from datetime import datetime
 import json
 from pathlib import Path
 import sys
-sys.path.append(str(Path(__file__).parent.parent.parent))
+sys.path.insert(0, str(Path(__file__).parent))
 
-from config.settings import config
+from settings import config
 from loguru import logger
 import pandas as pd
 from collections import defaultdict

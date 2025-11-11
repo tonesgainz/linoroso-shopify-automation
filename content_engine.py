@@ -10,9 +10,12 @@ from datetime import datetime
 import json
 from pathlib import Path
 import sys
-sys.path.append(str(Path(__file__).parent.parent.parent))
+import os
 
-from config.settings import config
+# Add current directory to path
+sys.path.insert(0, str(Path(__file__).parent))
+
+from settings import config
 from loguru import logger
 
 @dataclass
@@ -247,8 +250,17 @@ Return JSON:
                 }]
             )
             
-            # Parse JSON response
-            content_json = json.loads(message.content[0].text)
+            # Parse JSON response (handle markdown code blocks)
+            response_text = message.content[0].text.strip()
+            
+            # Remove markdown code blocks if present
+            if response_text.startswith('```'):
+                # Find the actual JSON content
+                lines = response_text.split('\n')
+                response_text = '\n'.join(lines[1:-1]) if len(lines) > 2 else response_text
+                response_text = response_text.replace('```json', '').replace('```', '').strip()
+            
+            content_json = json.loads(response_text)
             
             result = GeneratedContent(
                 title=content_json['title'],

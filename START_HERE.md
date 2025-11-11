@@ -34,6 +34,7 @@ python setup.py
 ```
 
 The setup assistant will:
+
 - Check system requirements
 - Install dependencies
 - Create configuration file
@@ -69,7 +70,7 @@ python src/content_generation/content_engine.py
 You'll need these credentials (add to `.env` file):
 
 1. **Anthropic API Key** (Claude AI)
-   - Get it: https://console.anthropic.com/
+   - Get it: <https://console.anthropic.com/>
    - Used for: Content generation
    - Cost: ~$0.003 per 1K tokens (~$3 for 100 blog posts)
 
@@ -109,7 +110,8 @@ python scripts/batch_generate.py --plan month1
 python src/product_optimizer/optimizer.py
 ```
 
-**Output**: 
+**Output**:
+
 - Optimized product descriptions
 - SEO-enhanced titles
 - Meta descriptions
@@ -122,6 +124,7 @@ python src/seo_automation/seo_engine.py
 ```
 
 **Output**:
+
 - Keyword research report
 - 12-month content calendar
 - SEO opportunity analysis
@@ -138,11 +141,13 @@ The system can run automatically:
 - **Quarterly**: Comprehensive strategy update
 
 **To start automation:**
+
 ```bash
 python main.py --mode scheduler
 ```
 
 **To run tasks manually:**
+
 ```bash
 python main.py --mode manual --task content
 python main.py --mode manual --task product_optimization
@@ -154,24 +159,28 @@ python main.py --mode manual --task seo_audit
 ## 📊 Expected Results Timeline
 
 ### Month 1: Foundation
+
 - 50-100 blog posts generated
 - All products optimized
 - Content calendar established
 - Initial SEO rankings
 
 ### Month 3: Growth Phase
+
 - 2-3x traffic increase
 - Multiple page 1 rankings
 - 250+ indexed pages
 - Social media traction
 
 ### Month 6: Acceleration
+
 - 5-7x traffic growth
 - 50+ keyword rankings
 - $150K-200K additional revenue
 - Strong brand authority
 
 ### Month 12: Goal Achievement
+
 - **10x organic traffic** ✓
 - **$350K-450K additional revenue** ✓
 - 600-1200 content pieces
@@ -201,6 +210,7 @@ python main.py --mode manual --task seo_audit
 ### Code Examples
 
 Check these files for working examples:
+
 - `src/content_generation/content_engine.py` - See bottom for usage examples
 - `scripts/batch_generate.py` - Pre-built content plans
 - `main.py` - Automation orchestration
@@ -209,7 +219,7 @@ Check these files for working examples:
 
 ## 🛠️ Project Structure
 
-```
+```text
 linoroso-shopify-automation/
 │
 ├── 📄 README.md              ← Project overview
@@ -240,6 +250,7 @@ linoroso-shopify-automation/
 ## 🔥 Popular Use Cases
 
 ### 1. Build Initial Content Library
+
 ```bash
 # Generate 5-10 essential blog posts
 python scripts/batch_generate.py --plan starter
@@ -249,6 +260,7 @@ python scripts/batch_generate.py --plan month1
 ```
 
 ### 2. Optimize All Products
+
 ```bash
 # Export products from Shopify first
 # Then run optimization
@@ -256,6 +268,7 @@ python src/product_optimizer/optimizer.py
 ```
 
 ### 3. Create Content Calendar
+
 ```python
 from src.seo_automation.seo_engine import SEOAutomation
 
@@ -266,6 +279,7 @@ calendar.to_csv("my_content_calendar.csv")
 ```
 
 ### 4. Generate Social Media Content
+
 ```python
 from src.content_generation.content_engine import ContentGenerator
 
@@ -283,6 +297,7 @@ print(post['caption'])
 ## 💰 Cost Breakdown
 
 ### Claude API Costs
+
 - Blog post (1200 words): ~$0.03
 - Product description: ~$0.01
 - Social media post: ~$0.005
@@ -294,12 +309,14 @@ print(post['caption'])
 - **Total: ~$4/month**
 
 ### Time Savings
+
 - Manual blog post: 2-4 hours → 2 minutes (automated)
 - Product optimization: 30 min/product → 30 seconds
 - SEO research: 10 hours → 5 minutes
 - **Value: $10,000+/month in time saved**
 
 ### ROI
+
 - Investment: ~$4/month (API) + $0 (your time after setup)
 - Return: $350K-450K additional annual revenue
 - **ROI: 87,500x to 112,500x**
@@ -324,18 +341,20 @@ A: Absolutely! Edit prompts in `content_engine.py` or review/edit all generated 
 A: Yes! Built-in keyword research, meta descriptions, internal linking, and more.
 
 **Q: What if I have issues?**  
-A: Check `logs/errors.log`, review documentation, or contact tony@linoroso.com
+A: Check `logs/errors.log`, review documentation, or contact <tony@linoroso.com>
 
 ---
 
 ## 🎬 Next Steps
 
 ### Right Now (5 minutes)
+
 1. Run `cd linoroso-shopify-automation`
 2. Run `python setup.py`
 3. Follow the prompts
 
 ### Today (30 minutes)
+
 1. Generate 5 blog posts
 2. Review and edit them
 3. Publish your favorites

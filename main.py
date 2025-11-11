@@ -5,7 +5,7 @@ Coordinates all marketing automation tasks for Linoroso
 
 import sys
 from pathlib import Path
-sys.path.append(str(Path(__file__).parent.parent))
+sys.path.insert(0, str(Path(__file__).parent))
 
 from datetime import datetime, time
 from typing import List, Dict
@@ -14,10 +14,7 @@ import time as time_module
 from loguru import logger
 import json
 
-from config.settings import config
-from src.content_generation.content_engine import ContentGenerator
-from src.seo_automation.seo_engine import SEOAutomation
-from src.product_optimizer.optimizer import ProductOptimizer
+from settings import config
 
 class LinorosoAutomation:
     """Main automation coordinator"""
