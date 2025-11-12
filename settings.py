@@ -175,7 +175,12 @@ class Config:
         
         # SEO
         self.serpapi_key = os.getenv('SERPAPI_KEY', '')
-        
+
+        # File paths
+        self.gsc_pages_csv = Path(os.getenv('GSC_PAGES_CSV', './data/gsc/Pages.csv'))
+        self.gsc_queries_csv = Path(os.getenv('GSC_QUERIES_CSV', './data/gsc/Queries.csv'))
+        self.products_csv = Path(os.getenv('PRODUCTS_CSV', './data/shopify/products_export.csv'))
+
     def validate(self) -> List[str]:
         """Validate required configuration and return list of missing items"""
         missing = []

@@ -5,7 +5,7 @@ Coordinates all marketing automation tasks for Linoroso
 
 import sys
 from pathlib import Path
-sys.path.append(str(Path(__file__).parent.parent))
+sys.path.insert(0, str(Path(__file__).parent))
 
 from datetime import datetime, time
 from typing import List, Dict
@@ -14,10 +14,10 @@ import time as time_module
 from loguru import logger
 import json
 
-from config.settings import config
-from src.content_generation.content_engine import ContentGenerator
-from src.seo_automation.seo_engine import SEOAutomation
-from src.product_optimizer.optimizer import ProductOptimizer
+from settings import config
+from content_engine import ContentGenerator
+from seo_engine import SEOAutomation
+from optimizer import ProductOptimizer
 
 class LinorosoAutomation:
     """Main automation coordinator"""
@@ -108,14 +108,14 @@ class LinorosoAutomation:
     
     def run_weekly_seo_audit(self):
         """Weekly SEO performance audit and optimization suggestions"""
-        
+
         logger.info("🔍 Starting weekly SEO audit")
-        
+
         try:
             # Analyze current performance
-            pages_csv = Path("/mnt/project/Pages.csv")
-            queries_csv = Path("/mnt/project/Queries.csv")
-            
+            pages_csv = config.gsc_pages_csv
+            queries_csv = config.gsc_queries_csv
+
             if pages_csv.exists() and queries_csv.exists():
                 analysis = self.seo_engine.analyze_current_performance(
                     pages_csv, queries_csv
@@ -148,12 +148,12 @@ class LinorosoAutomation:
     
     def run_monthly_product_optimization(self):
         """Monthly optimization of all product listings"""
-        
+
         logger.info("💎 Starting monthly product optimization")
-        
+
         try:
-            products_csv = Path("/mnt/project/products_export_1 2.csv")
-            
+            products_csv = config.products_csv
+
             if products_csv.exists():
                 # Optimize all products
                 results = self.product_optimizer.optimize_all_products(products_csv)
