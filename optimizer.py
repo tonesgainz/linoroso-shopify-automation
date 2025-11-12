@@ -15,6 +15,7 @@ from datetime import datetime
 from loguru import logger
 
 from settings import config
+from content_engine import ContentGenerator
 
 @dataclass
 class Product:
@@ -371,10 +372,10 @@ class ProductOptimizer:
 # Example usage
 if __name__ == "__main__":
     optimizer = ProductOptimizer()
-    
+
     # Optimize products from export
-    products_csv = Path("/mnt/project/products_export_1 2.csv")
-    
+    products_csv = config.products_csv
+
     if products_csv.exists():
         print("🚀 Starting product optimization...")
         results = optimizer.optimize_all_products(products_csv)

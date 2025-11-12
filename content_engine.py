@@ -17,6 +17,12 @@ sys.path.insert(0, str(Path(__file__).parent))
 
 from settings import config
 from loguru import logger
+from utils.error_handling import (
+    retry_with_backoff,
+    handle_api_error,
+    validate_input,
+    RateLimiter
+)
 
 @dataclass
 class ContentRequest:
@@ -53,13 +59,18 @@ class GeneratedContent:
 
 class ContentGenerator:
     """AI-powered content generation using Claude"""
-    
+
     def __init__(self):
+        validate_input(
+            bool(config.claude.api_key),
+            "Claude API key is required. Set ANTHROPIC_API_KEY in .env"
+        )
         self.client = anthropic.Anthropic(api_key=config.claude.api_key)
         self.model = config.claude.model
         self.brand_voice = config.brand.voice
         self.brand_name = config.brand.name
         self.brand_tagline = config.brand.tagline
+        self.rate_limiter = RateLimiter(requests_per_minute=50)
         
     def _build_system_prompt(self) -> str:
         """Build system prompt with brand guidelines"""
@@ -221,13 +232,26 @@ Return JSON:
     "posting_tips": "Best practices for this specific post"
 }}"""
 
-    def generate_blog_post(self, topic: str, keywords: List[str], 
+    @retry_with_backoff(
+        max_retries=3,
+        exceptions=(anthropic.APIError, anthropic.RateLimitError)
+    )
+    @handle_api_error
+    def generate_blog_post(self, topic: str, keywords: List[str],
                           word_count: Optional[int] = None) -> GeneratedContent:
         """Generate SEO-optimized blog post"""
-        
+
+        # Validate inputs
+        validate_input(bool(topic), "Topic cannot be empty")
+        validate_input(len(keywords) > 0, "At least one keyword is required")
+        validate_input(
+            word_count is None or word_count > 0,
+            "Word count must be positive"
+        )
+
         if word_count is None:
             word_count = config.content.min_word_count
-            
+
         request = ContentRequest(
             content_type='blog_post',
             topic=topic,
@@ -236,48 +260,59 @@ Return JSON:
             tone=self.brand_voice,
             target_audience=config.brand.target_audience
         )
-        
+
         logger.info(f"Generating blog post about '{topic}'")
-        
+
+        # Apply rate limiting
+        self.rate_limiter.wait_if_needed()
+
+        message = self.client.messages.create(
+            model=self.model,
+            max_tokens=config.claude.max_tokens,
+            system=self._build_system_prompt(),
+            messages=[{
+                "role": "user",
+                "content": self._build_blog_prompt(request)
+            }]
+        )
+
+        # Parse JSON response (handle markdown code blocks)
+        response_text = message.content[0].text.strip()
+
+        # Remove markdown code blocks if present
+        if response_text.startswith('```'):
+            # Find the actual JSON content
+            lines = response_text.split('\n')
+            response_text = '\n'.join(lines[1:-1]) if len(lines) > 2 else response_text
+            response_text = response_text.replace('```json', '').replace('```', '').strip()
+
         try:
-            message = self.client.messages.create(
-                model=self.model,
-                max_tokens=config.claude.max_tokens,
-                system=self._build_system_prompt(),
-                messages=[{
-                    "role": "user",
-                    "content": self._build_blog_prompt(request)
-                }]
-            )
-            
-            # Parse JSON response (handle markdown code blocks)
-            response_text = message.content[0].text.strip()
-            
-            # Remove markdown code blocks if present
-            if response_text.startswith('```'):
-                # Find the actual JSON content
-                lines = response_text.split('\n')
-                response_text = '\n'.join(lines[1:-1]) if len(lines) > 2 else response_text
-                response_text = response_text.replace('```json', '').replace('```', '').strip()
-            
             content_json = json.loads(response_text)
-            
-            result = GeneratedContent(
-                title=content_json['title'],
-                content=content_json['content'],
-                meta_description=content_json['meta_description'],
-                keywords=content_json.get('secondary_keywords', keywords),
-                word_count=len(content_json['content'].split()),
-                created_at=datetime.now(),
-                content_type='blog_post'
-            )
-            
-            logger.success(f"Generated blog post: '{result.title}' ({result.word_count} words)")
-            return result
-            
-        except Exception as e:
-            logger.error(f"Error generating blog post: {e}")
+        except json.JSONDecodeError as e:
+            logger.error(f"Failed to parse Claude response as JSON: {e}")
+            logger.debug(f"Response text: {response_text[:500]}...")
             raise
+
+        # Validate response structure
+        required_fields = ['title', 'content', 'meta_description']
+        for field in required_fields:
+            validate_input(
+                field in content_json,
+                f"Claude response missing required field: {field}"
+            )
+
+        result = GeneratedContent(
+            title=content_json['title'],
+            content=content_json['content'],
+            meta_description=content_json['meta_description'],
+            keywords=content_json.get('secondary_keywords', keywords),
+            word_count=len(content_json['content'].split()),
+            created_at=datetime.now(),
+            content_type='blog_post'
+        )
+
+        logger.success(f"Generated blog post: '{result.title}' ({result.word_count} words)")
+        return result
 
     def generate_product_description(self, product_name: str, 
                                      keywords: List[str],

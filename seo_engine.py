@@ -442,16 +442,16 @@ class SEOAutomation:
 # Example usage
 if __name__ == "__main__":
     seo = SEOAutomation()
-    
+
     # Generate comprehensive strategy
     report_path = seo.generate_seo_report()
     print(f"\n✅ SEO strategy report generated: {report_path}")
-    
+
     # Analyze current performance if GSC data available
     try:
-        pages_csv = Path("/mnt/project/Pages.csv")
-        queries_csv = Path("/mnt/project/Queries.csv")
-        
+        pages_csv = config.gsc_pages_csv
+        queries_csv = config.gsc_queries_csv
+
         if pages_csv.exists() and queries_csv.exists():
             analysis = seo.analyze_current_performance(pages_csv, queries_csv)
             print(f"\n📊 Current Performance:")
