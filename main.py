@@ -1,43 +1,80 @@
 """
-Main Automation Orchestrator
-Coordinates all marketing automation tasks for Linoroso
+Main Automation Orchestrator.
+
+Coordinates all marketing automation tasks for Linoroso, including:
+- Daily content generation (blog posts, social media)
+- Weekly SEO audits and performance analysis
+- Monthly product listing optimization
+- Quarterly strategy reviews
+
+This module provides both scheduled automation and manual task execution modes.
 """
 
-import sys
+from datetime import datetime
 from pathlib import Path
-sys.path.append(str(Path(__file__).parent.parent))
-
-from datetime import datetime, time
-from typing import List, Dict
+from typing import List, Dict, Optional
 import schedule
 import time as time_module
 from loguru import logger
 import json
 
-from config.settings import config
-from src.content_generation.content_engine import ContentGenerator
-from src.seo_automation.seo_engine import SEOAutomation
-from src.product_optimizer.optimizer import ProductOptimizer
+from settings import config
+from content_engine import ContentGenerator
+from seo_engine import SEOAutomation
+from optimizer import ProductOptimizer
+
+# Constants
+DEFAULT_CONTENT_SCHEDULE_TIME = "02:00"
+DEFAULT_SEO_AUDIT_DAY = "monday"
+DEFAULT_SEO_AUDIT_TIME = "09:00"
+DEFAULT_PRODUCT_OPT_TIME = "03:00"
+SLEEP_INTERVAL_SECONDS = 60
+MAX_LOG_ENTRIES = 1000
+CTR_THRESHOLD = 2.0  # Alert threshold for CTR percentage
 
 class LinorosoAutomation:
-    """Main automation coordinator"""
-    
-    def __init__(self):
+    """Main automation coordinator for Linoroso marketing tasks.
+
+    This class orchestrates all automated marketing tasks including content generation,
+    SEO optimization, and product listing management. It supports both scheduled
+    automated execution and manual task triggering.
+
+    Attributes:
+        content_generator: Instance for generating blog and social content
+        seo_engine: Instance for SEO analysis and optimization
+        product_optimizer: Instance for product listing optimization
+        execution_log: List of task execution records
+    """
+
+    def __init__(self) -> None:
+        """Initialize automation coordinator with all necessary engines."""
         self.content_generator = ContentGenerator()
         self.seo_engine = SEOAutomation()
         self.product_optimizer = ProductOptimizer()
-        self.execution_log = []
-        
+        self.execution_log: List[Dict] = []
+
+        # Configure logging with rotation and retention
         logger.add(
             "logs/automation_{time}.log",
             rotation="1 day",
             retention="30 days",
-            level="INFO"
+            level="INFO",
+            format="{time:YYYY-MM-DD HH:mm:ss} | {level: <8} | {message}"
         )
         
-    def run_daily_content_generation(self):
-        """Generate daily blog posts and social media content"""
-        
+    def run_daily_content_generation(self) -> None:
+        """Generate daily blog posts and social media content.
+
+        This method:
+        1. Retrieves daily topics from the content calendar
+        2. Generates blog posts for each topic
+        3. Creates social media posts for multiple platforms
+        4. Saves all generated content
+        5. Logs execution details
+
+        Raises:
+            Exception: If content generation fails critically
+        """
         logger.info("🚀 Starting daily content generation")
         
         try:
@@ -106,33 +143,40 @@ class LinorosoAutomation:
             logger.error(f"Error in daily content generation: {e}")
             raise
     
-    def run_weekly_seo_audit(self):
-        """Weekly SEO performance audit and optimization suggestions"""
-        
+    def run_weekly_seo_audit(self) -> None:
+        """Weekly SEO performance audit and optimization suggestions.
+
+        Analyzes current SEO performance using Google Search Console data,
+        generates optimization recommendations, and sends alerts if performance
+        drops below thresholds.
+
+        Raises:
+            Exception: If SEO audit fails critically
+        """
         logger.info("🔍 Starting weekly SEO audit")
         
         try:
             # Analyze current performance
             pages_csv = Path("/mnt/project/Pages.csv")
             queries_csv = Path("/mnt/project/Queries.csv")
-            
+
             if pages_csv.exists() and queries_csv.exists():
                 analysis = self.seo_engine.analyze_current_performance(
                     pages_csv, queries_csv
                 )
-                
+
                 # Generate report
                 report_path = Path('./reports') / f"seo_audit_{datetime.now().strftime('%Y%m%d')}.json"
                 report_path.parent.mkdir(parents=True, exist_ok=True)
-                
-                with open(report_path, 'w') as f:
-                    json.dump(analysis, f, indent=2)
-                
+
+                with open(report_path, 'w', encoding='utf-8') as f:
+                    json.dump(analysis, f, indent=2, ensure_ascii=False)
+
                 logger.success(f"SEO audit report saved: {report_path}")
-                
-                # Send alert if performance drops
-                if analysis['avg_ctr'] < 2.0:
-                    self._send_alert("⚠️ CTR below 2% - optimization needed")
+
+                # Send alert if performance drops below threshold
+                if analysis['avg_ctr'] < CTR_THRESHOLD:
+                    self._send_alert(f"⚠️ CTR below {CTR_THRESHOLD}% - optimization needed")
                 
                 self._log_execution('weekly_seo_audit', {
                     'report_path': str(report_path),
@@ -146,9 +190,15 @@ class LinorosoAutomation:
             logger.error(f"Error in weekly SEO audit: {e}")
             raise
     
-    def run_monthly_product_optimization(self):
-        """Monthly optimization of all product listings"""
-        
+    def run_monthly_product_optimization(self) -> None:
+        """Monthly optimization of all product listings.
+
+        Optimizes all Shopify product listings for SEO and conversion,
+        generates reports, and creates import-ready CSV files.
+
+        Raises:
+            Exception: If product optimization fails critically
+        """
         logger.info("💎 Starting monthly product optimization")
         
         try:
@@ -205,11 +255,16 @@ class LinorosoAutomation:
             logger.error(f"Error in quarterly review: {e}")
             raise
     
-    def _get_daily_topics(self) -> List[Dict]:
-        """Get topics for today's content generation"""
-        
-        # In production, this would read from content calendar
-        # For now, return sample topics
+    def _get_daily_topics(self) -> List[Dict[str, any]]:
+        """Get topics for today's content generation.
+
+        In production, this would read from a content calendar or database.
+        Currently returns sample topics for demonstration.
+
+        Returns:
+            List of topic dictionaries with topic, keywords, and word_count
+        """
+        # TODO: Implement content calendar integration
         topics = [
             {
                 'topic': '5 Time-Saving Knife Techniques Every Home Cook Should Know',
@@ -225,8 +280,12 @@ class LinorosoAutomation:
         
         return topics[:1]  # 1 blog post per day
     
-    def _get_social_topics(self) -> List[Dict]:
-        """Get topics for social media posts"""
+    def _get_social_topics(self) -> List[Dict[str, any]]:
+        """Get topics for social media posts.
+
+        Returns:
+            List of topic dictionaries for social media content
+        """
         
         topics = [
             {
@@ -245,8 +304,13 @@ class LinorosoAutomation:
         
         return topics
     
-    def _save_social_post(self, post: Dict, platform: str):
-        """Save social media post for scheduling"""
+    def _save_social_post(self, post: Dict[str, any], platform: str) -> None:
+        """Save social media post for scheduling.
+
+        Args:
+            post: Social media post data
+            platform: Social media platform name
+        """
         
         output_dir = Path('./data/social_posts') / platform
         output_dir.mkdir(parents=True, exist_ok=True)
@@ -259,8 +323,13 @@ class LinorosoAutomation:
         
         logger.info(f"Saved {platform} post: {filepath}")
     
-    def _log_execution(self, task_name: str, details: Dict):
-        """Log task execution"""
+    def _log_execution(self, task_name: str, details: Dict[str, any]) -> None:
+        """Log task execution to file and in-memory log.
+
+        Args:
+            task_name: Name of the executed task
+            details: Task execution details and results
+        """
         
         log_entry = {
             'timestamp': datetime.now().isoformat(),
@@ -282,15 +351,19 @@ class LinorosoAutomation:
             all_logs = []
         
         all_logs.append(log_entry)
-        
-        # Keep last 1000 entries
-        all_logs = all_logs[-1000:]
+
+        # Keep last MAX_LOG_ENTRIES entries to prevent unbounded growth
+        all_logs = all_logs[-MAX_LOG_ENTRIES:]
         
         with open(log_file, 'w') as f:
             json.dump(all_logs, f, indent=2)
     
-    def _send_alert(self, message: str):
-        """Send alert via configured channels"""
+    def _send_alert(self, message: str) -> None:
+        """Send alert via configured channels.
+
+        Args:
+            message: Alert message to send
+        """
         
         logger.info(f"ALERT: {message}")
         
@@ -306,44 +379,56 @@ class LinorosoAutomation:
         with open(alert_file, 'a') as f:
             f.write(f"{datetime.now().isoformat()} - {message}\n")
     
-    def setup_schedule(self):
-        """Set up automated task schedule"""
-        
+    def setup_schedule(self) -> None:
+        """Set up automated task schedule.
+
+        Configures scheduled tasks for:
+        - Daily content generation
+        - Weekly SEO audits
+        - Monthly product optimization
+        """
         logger.info("⏰ Setting up automation schedule")
-        
+
         # Daily content generation at 2 AM PST
-        schedule.every().day.at("02:00").do(self.run_daily_content_generation)
-        
+        schedule.every().day.at(DEFAULT_CONTENT_SCHEDULE_TIME).do(self.run_daily_content_generation)
+
         # Weekly SEO audit every Monday at 9 AM PST
-        schedule.every().monday.at("09:00").do(self.run_weekly_seo_audit)
-        
+        schedule.every().monday.at(DEFAULT_SEO_AUDIT_TIME).do(self.run_weekly_seo_audit)
+
         # Monthly product optimization on the 1st at 3 AM PST
-        schedule.every().month.at("03:00").do(self.run_monthly_product_optimization)
+        schedule.every().month.at(DEFAULT_PRODUCT_OPT_TIME).do(self.run_monthly_product_optimization)
         
         # Quarterly strategy review (manual trigger recommended)
         # schedule.every(90).days.do(self.run_quarterly_strategy_review)
         
         logger.success("✅ Automation schedule configured")
     
-    def run_scheduler(self):
-        """Run the scheduler loop"""
-        
+    def run_scheduler(self) -> None:
+        """Run the scheduler loop.
+
+        Starts the continuous scheduler that executes tasks at configured times.
+        Runs until interrupted by user (Ctrl+C).
+        """
         logger.info("🚀 Starting Linoroso Marketing Automation")
         logger.info(f"Environment: {config.environment}")
-        
+
         self.setup_schedule()
-        
+
         logger.success("✅ Scheduler running - press Ctrl+C to stop")
-        
+
         try:
             while True:
                 schedule.run_pending()
-                time_module.sleep(60)  # Check every minute
+                time_module.sleep(SLEEP_INTERVAL_SECONDS)
         except KeyboardInterrupt:
             logger.info("⏹️  Scheduler stopped by user")
-    
-    def run_manual_task(self, task_name: str):
-        """Manually run a specific task"""
+
+    def run_manual_task(self, task_name: str) -> None:
+        """Manually run a specific task.
+
+        Args:
+            task_name: Name of the task to run (content, seo_audit, product_optimization, strategy)
+        """
         
         tasks = {
             'content': self.run_daily_content_generation,
@@ -360,9 +445,12 @@ class LinorosoAutomation:
             logger.info(f"Available tasks: {', '.join(tasks.keys())}")
 
 
-def main():
-    """Main entry point"""
-    
+def main() -> None:
+    """Main entry point for the automation system.
+
+    Parses command line arguments and either starts the scheduler
+    or runs manual tasks based on user input.
+    """
     import argparse
     
     parser = argparse.ArgumentParser(description='Linoroso Shopify Marketing Automation')
