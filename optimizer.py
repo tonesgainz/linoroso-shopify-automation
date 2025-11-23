@@ -1,12 +1,12 @@
 """
-Product Listing Optimizer
-AI-powered optimization of Shopify product listings for maximum conversion
+Product Listing Optimizer.
+
+AI-powered optimization of Shopify product listings for maximum conversion.
+Analyzes product data, generates optimized titles and descriptions, and
+provides SEO scoring and recommendations.
 """
 
-import sys
 from pathlib import Path
-sys.path.append(str(Path(__file__).parent.parent.parent))
-
 from typing import Dict, List, Optional
 import pandas as pd
 from dataclasses import dataclass
@@ -14,12 +14,36 @@ import json
 from datetime import datetime
 from loguru import logger
 
-from config.settings import config
-from src.content_generation.content_engine import ContentGenerator
+from settings import config
+from content_engine import ContentGenerator
+
+# Constants
+MIN_TITLE_LENGTH = 30
+OPTIMAL_MIN_TITLE_LENGTH = 60
+OPTIMAL_MAX_TITLE_LENGTH = 70
+MAX_TITLE_LENGTH_WARNING = 80
+MIN_DESCRIPTION_LENGTH = 300
+MIN_TAG_COUNT = 5
+MIN_IMAGE_COUNT = 3
+SEO_PERFECT_SCORE = 100.0
+POST_OPTIMIZATION_SCORE = 90.0
+MAX_TAGS = 15  # Shopify recommends 10-15 tags
 
 @dataclass
 class Product:
-    """Product data structure"""
+    """Product data structure.
+
+    Attributes:
+        handle: Product URL handle
+        title: Product title
+        description: Product description HTML
+        vendor: Product vendor/brand
+        product_type: Product type/category
+        tags: Product tags
+        price: Product price
+        sku: Stock keeping unit
+        images: List of image URLs
+    """
     handle: str
     title: str
     description: str
@@ -29,10 +53,17 @@ class Product:
     price: float
     sku: str
     images: List[str]
-    
+
     @classmethod
-    def from_shopify_export(cls, row: pd.Series):
-        """Create Product from Shopify CSV export row"""
+    def from_shopify_export(cls, row: pd.Series) -> 'Product':
+        """Create Product from Shopify CSV export row.
+
+        Args:
+            row: Pandas Series from Shopify CSV
+
+        Returns:
+            Product instance
+        """
         return cls(
             handle=row.get('Handle', ''),
             title=row.get('Title', ''),
@@ -60,26 +91,37 @@ class OptimizationResult:
     created_at: datetime
 
 class ProductOptimizer:
-    """Optimize product listings using AI"""
-    
-    def __init__(self):
+    """Optimize product listings using AI.
+
+    Uses AI-powered content generation to create optimized product titles,
+    descriptions, and metadata for improved SEO and conversion rates.
+
+    Attributes:
+        content_generator: Content generation engine
+    """
+
+    def __init__(self) -> None:
+        """Initialize product optimizer with content generator."""
         self.content_generator = ContentGenerator()
-        self.min_title_length = 60
-        self.max_title_length = 70
-        self.meta_desc_length = 155
         
-    def analyze_product(self, product: Product) -> Dict:
-        """Analyze current product listing quality"""
-        
+    def analyze_product(self, product: Product) -> Dict[str, any]:
+        """Analyze current product listing quality.
+
+        Args:
+            product: Product to analyze
+
+        Returns:
+            Dictionary with score, issues, and metrics
+        """
         issues = []
-        score = 100.0
-        
+        score = SEO_PERFECT_SCORE
+
         # Title analysis
         title_len = len(product.title)
-        if title_len < 30:
-            issues.append("Title too short - should be 60-70 characters")
+        if title_len < MIN_TITLE_LENGTH:
+            issues.append(f"Title too short - should be {OPTIMAL_MIN_TITLE_LENGTH}-{OPTIMAL_MAX_TITLE_LENGTH} characters")
             score -= 15
-        elif title_len > 80:
+        elif title_len > MAX_TITLE_LENGTH_WARNING:
             issues.append("Title too long - will be truncated in search results")
             score -= 10
         
@@ -94,10 +136,10 @@ class ProductOptimizer:
         
         # Description analysis
         desc_len = len(product.description)
-        if desc_len < 300:
-            issues.append("Description too short - should be at least 300 characters")
+        if desc_len < MIN_DESCRIPTION_LENGTH:
+            issues.append(f"Description too short - should be at least {MIN_DESCRIPTION_LENGTH} characters")
             score -= 15
-        
+
         # Check for HTML in description
         if '<p>' in product.description or '<div>' in product.description:
             # Good - has formatting
@@ -105,20 +147,20 @@ class ProductOptimizer:
         else:
             issues.append("Description lacks HTML formatting")
             score -= 5
-        
+
         # Tags analysis
-        if len(product.tags) < 5:
-            issues.append("Too few product tags - add more for better discovery")
+        if len(product.tags) < MIN_TAG_COUNT:
+            issues.append(f"Too few product tags - add more for better discovery (minimum {MIN_TAG_COUNT})")
             score -= 10
-        
+
         # Price analysis
         if product.price <= 0:
             issues.append("Invalid price")
             score -= 20
-        
+
         # Images
-        if not product.images or len(product.images) < 3:
-            issues.append("Need at least 3 product images")
+        if not product.images or len(product.images) < MIN_IMAGE_COUNT:
+            issues.append(f"Need at least {MIN_IMAGE_COUNT} product images")
             score -= 10
         
         return {
@@ -180,12 +222,12 @@ class ProductOptimizer:
         result = OptimizationResult(
             product_handle=product.handle,
             original_title=product.title,
-            optimized_title=optimized_title[:70],  # Limit to 70 chars
+            optimized_title=optimized_title[:OPTIMAL_MAX_TITLE_LENGTH],
             original_description=product.description,
             optimized_description=optimized_content.content,
             meta_description=meta_desc,
             suggested_tags=suggested_tags,
-            seo_score=90.0,  # Post-optimization score
+            seo_score=POST_OPTIMIZATION_SCORE,
             improvement_notes=improvement_notes,
             created_at=datetime.now()
         )
@@ -246,7 +288,7 @@ class ProductOptimizer:
         ]
         tags.update(benefits[:2])
         
-        return list(tags)[:15]  # Shopify recommends 10-15 tags
+        return list(tags)[:MAX_TAGS]
     
     def optimize_all_products(self, csv_path: Path) -> List[OptimizationResult]:
         """Optimize all products from Shopify export CSV"""

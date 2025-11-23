@@ -1,25 +1,33 @@
 """
-Batch Content Generator
-Quickly generate multiple pieces of content for initial content library building
+Batch Content Generator.
+
+Quickly generate multiple pieces of content for initial content library building.
+Supports pre-defined content plans and custom content generation from JSON files.
 """
 
-import sys
 from pathlib import Path
-sys.path.append(str(Path(__file__).parent.parent))
-
-from src.content_generation.content_engine import ContentGenerator, ContentRequest
-from loguru import logger
 from typing import List, Dict
 import json
 from datetime import datetime
+from loguru import logger
+
+from content_engine import ContentGenerator, ContentRequest
+
+# Constants
+ESTIMATED_MINUTES_PER_PIECE = 2
 
 class BatchContentGenerator:
-    """Generate multiple pieces of content in batch"""
-    
-    def __init__(self):
+    """Generate multiple pieces of content in batch.
+
+    Attributes:
+        generator: Content generation engine
+    """
+
+    def __init__(self) -> None:
+        """Initialize batch content generator."""
         self.generator = ContentGenerator()
-        
-    def generate_content_library(self, content_plan: List[Dict]) -> List:
+
+    def generate_content_library(self, content_plan: List[Dict[str, any]]) -> List[Dict[str, any]]:
         """Generate a complete content library from a plan"""
         
         logger.info(f"Starting batch generation of {len(content_plan)} pieces")
@@ -267,7 +275,7 @@ def main():
     print("LINOROSO BATCH CONTENT GENERATION")
     print("="*60)
     print(f"\n📝 Generating {len(plan)} pieces of content...")
-    print(f"⏱️  Estimated time: {len(plan) * 2} minutes\n")
+    print(f"⏱️  Estimated time: {len(plan) * ESTIMATED_MINUTES_PER_PIECE} minutes\n")
     
     results = generator.generate_content_library(plan)
     

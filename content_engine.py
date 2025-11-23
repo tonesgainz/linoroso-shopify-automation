@@ -1,34 +1,67 @@
 """
-Content Generation Engine - Powered by Claude AI
+Content Generation Engine - Powered by Claude AI.
+
 Generates SEO-optimized blog posts, product descriptions, and marketing copy
+using Anthropic's Claude AI. Supports multiple content types and platforms.
 """
 
 import anthropic
-from typing import Dict, List, Optional, Literal
+from typing import Dict, List, Optional, Literal, Union
 from dataclasses import dataclass
 from datetime import datetime
 import json
 from pathlib import Path
-import sys
-sys.path.append(str(Path(__file__).parent.parent.parent))
-
-from config.settings import config
 from loguru import logger
+
+from settings import config
+
+# Constants
+DEFAULT_PRODUCT_WORD_COUNT = 300
+DEFAULT_SOCIAL_WORD_COUNT = 150
+MAX_TITLE_LENGTH = 60
+MAX_META_DESCRIPTION_LENGTH = 155
+PLATFORM_CHAR_LIMITS = {
+    'instagram': {'caption': 2200, 'optimal': 125},
+    'tiktok': {'caption': 150, 'optimal': 100},
+    'pinterest': {'description': 500, 'optimal': 200},
+    'facebook': {'post': 63206, 'optimal': 40}
+}
 
 @dataclass
 class ContentRequest:
-    """Content generation request"""
+    """Content generation request specification.
+
+    Attributes:
+        content_type: Type of content to generate
+        topic: Main topic or title
+        keywords: Target keywords for SEO
+        word_count: Target word count
+        tone: Writing tone and style
+        target_audience: Target audience description
+        additional_context: Additional context or requirements
+    """
     content_type: Literal['blog_post', 'product_description', 'social_media', 'email']
     topic: str
     keywords: List[str]
     word_count: int
     tone: str = "professional, warm, helpful"
     target_audience: str = "home cooks and culinary enthusiasts"
-    additional_context: Optional[Dict] = None
+    additional_context: Optional[Dict[str, any]] = None
+
 
 @dataclass
 class GeneratedContent:
-    """Generated content response"""
+    """Generated content response.
+
+    Attributes:
+        title: Content title
+        content: Main content body
+        meta_description: SEO meta description
+        keywords: Keywords used in content
+        word_count: Actual word count
+        created_at: Creation timestamp
+        content_type: Type of content generated
+    """
     title: str
     content: str
     meta_description: str
@@ -36,8 +69,13 @@ class GeneratedContent:
     word_count: int
     created_at: datetime
     content_type: str
-    
-    def to_dict(self):
+
+    def to_dict(self) -> Dict[str, any]:
+        """Convert to dictionary for JSON serialization.
+
+        Returns:
+            Dictionary representation of the content
+        """
         return {
             'title': self.title,
             'content': self.content,
@@ -49,14 +87,30 @@ class GeneratedContent:
         }
 
 class ContentGenerator:
-    """AI-powered content generation using Claude"""
-    
-    def __init__(self):
+    """AI-powered content generation using Claude.
+
+    This class provides methods to generate various types of marketing content
+    including blog posts, product descriptions, and social media posts using
+    Anthropic's Claude AI with brand-consistent voice and messaging.
+
+    Attributes:
+        client: Anthropic API client
+        model: Claude model version to use
+        brand_voice: Brand voice characteristics
+        brand_name: Brand name
+        brand_tagline: Brand tagline
+    """
+
+    def __init__(self) -> None:
+        """Initialize content generator with Claude AI client and brand settings."""
+        if not config.claude.api_key:
+            raise ValueError("ANTHROPIC_API_KEY is required for content generation")
+
         self.client = anthropic.Anthropic(api_key=config.claude.api_key)
-        self.model = config.claude.model
-        self.brand_voice = config.brand.voice
-        self.brand_name = config.brand.name
-        self.brand_tagline = config.brand.tagline
+        self.model: str = config.claude.model
+        self.brand_voice: str = config.brand.voice
+        self.brand_name: str = config.brand.name
+        self.brand_tagline: str = config.brand.tagline
         
     def _build_system_prompt(self) -> str:
         """Build system prompt with brand guidelines"""
@@ -177,17 +231,17 @@ Return JSON format:
 }}"""
 
     def _build_social_media_prompt(self, request: ContentRequest) -> str:
-        """Build prompt for social media content"""
+        """Build prompt for social media content.
+
+        Args:
+            request: Content request with platform information
+
+        Returns:
+            Formatted prompt for Claude AI
+        """
         platform = request.additional_context.get('platform', 'instagram') if request.additional_context else 'instagram'
-        
-        char_limits = {
-            'instagram': {'caption': 2200, 'optimal': 125},
-            'tiktok': {'caption': 150, 'optimal': 100},
-            'pinterest': {'description': 500, 'optimal': 200},
-            'facebook': {'post': 63206, 'optimal': 40}
-        }
-        
-        limit = char_limits.get(platform, {'optimal': 150})['optimal']
+
+        limit = PLATFORM_CHAR_LIMITS.get(platform, {'optimal': 150})['optimal']
         
         return f"""Create engaging social media content for {platform.title()} about: {request.topic}
 
@@ -267,16 +321,30 @@ Return JSON:
             logger.error(f"Error generating blog post: {e}")
             raise
 
-    def generate_product_description(self, product_name: str, 
-                                     keywords: List[str],
-                                     product_details: Optional[Dict] = None) -> GeneratedContent:
-        """Generate compelling product description"""
-        
+    def generate_product_description(
+        self,
+        product_name: str,
+        keywords: List[str],
+        product_details: Optional[Dict[str, any]] = None
+    ) -> GeneratedContent:
+        """Generate compelling product description.
+
+        Args:
+            product_name: Name of the product
+            keywords: SEO keywords to target
+            product_details: Additional product information
+
+        Returns:
+            GeneratedContent object with product description
+
+        Raises:
+            Exception: If content generation fails
+        """
         request = ContentRequest(
             content_type='product_description',
             topic=product_name,
             keywords=keywords,
-            word_count=300,  # Standard product description length
+            word_count=DEFAULT_PRODUCT_WORD_COUNT,
             additional_context=product_details or {}
         )
         
@@ -381,8 +449,16 @@ Return JSON:
         logger.info(f"Generated {len(results)} pieces of content from {len(requests)} requests")
         return results
 
-    def save_content(self, content: GeneratedContent, output_dir: Optional[Path] = None):
-        """Save generated content to file"""
+    def save_content(self, content: GeneratedContent, output_dir: Optional[Path] = None) -> Path:
+        """Save generated content to file.
+
+        Args:
+            content: Generated content to save
+            output_dir: Output directory (uses default if not specified)
+
+        Returns:
+            Path to the saved file
+        """
         
         if output_dir is None:
             output_dir = config.content.output_path

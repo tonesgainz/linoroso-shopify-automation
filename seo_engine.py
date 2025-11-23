@@ -1,7 +1,9 @@
 """
-SEO Automation Module
-Handles keyword research, competitor analysis, and on-page optimization
-Goal: 10x organic traffic growth over 12 months
+SEO Automation Module.
+
+Handles keyword research, competitor analysis, and on-page optimization.
+Goal: 10x organic traffic growth over 12 months through strategic content
+and SEO optimization.
 """
 
 import requests
@@ -10,13 +12,19 @@ from dataclasses import dataclass
 from datetime import datetime
 import json
 from pathlib import Path
-import sys
-sys.path.append(str(Path(__file__).parent.parent.parent))
-
-from config.settings import config
 from loguru import logger
 import pandas as pd
 from collections import defaultdict
+
+from settings import config
+
+# Constants
+DEFAULT_LOCATION = "United States"
+DEFAULT_MAX_CLUSTERS = 20
+MIN_CLUSTER_SIZE = 2
+MONTHLY_CONTENT_TARGET = 75
+TRAFFIC_CAPTURE_RATE = 0.15  # Estimated 15% of search volume
+HIGH_PRIORITY_VOLUME_THRESHOLD = 5000
 
 @dataclass
 class Keyword:
@@ -205,9 +213,20 @@ class SEOAutomation:
         
         return cpc_map.get(intent, 1.00)
     
-    def cluster_keywords(self, keywords: List[Keyword], 
-                        max_clusters: int = 20) -> List[KeywordCluster]:
-        """Group keywords into topical clusters"""
+    def cluster_keywords(
+        self,
+        keywords: List[Keyword],
+        max_clusters: int = DEFAULT_MAX_CLUSTERS
+    ) -> List[KeywordCluster]:
+        """Group keywords into topical clusters.
+
+        Args:
+            keywords: List of keywords to cluster
+            max_clusters: Maximum number of clusters to create
+
+        Returns:
+            List of keyword clusters
+        """
         
         logger.info(f"Clustering {len(keywords)} keywords into topics")
         
@@ -223,7 +242,7 @@ class SEOAutomation:
         # Create KeywordCluster objects
         clusters = []
         for topic, kw_list in clusters_dict.items():
-            if len(kw_list) < 2:
+            if len(kw_list) < MIN_CLUSTER_SIZE:
                 continue
                 
             # Sort by volume to find primary keyword
@@ -272,9 +291,9 @@ class SEOAutomation:
         """Generate 12-month content calendar from keyword clusters"""
         
         logger.info(f"Generating {months}-month content calendar")
-        
+
         # Target: 50-100 pieces monthly = ~3 pieces per day
-        target_pieces = months * 75  # Average of 75 per month
+        target_pieces = months * MONTHLY_CONTENT_TARGET
         
         calendar_data = []
         piece_count = 0
@@ -298,8 +317,8 @@ class SEOAutomation:
                     'difficulty': cluster.primary_keyword.difficulty,
                     'content_type': opportunity,
                     'target_intent': cluster.primary_keyword.intent,
-                    'priority': 'High' if cluster.total_volume > 5000 else 'Medium',
-                    'estimated_traffic': int(cluster.total_volume * 0.15)  # 15% capture rate
+                    'priority': 'High' if cluster.total_volume > HIGH_PRIORITY_VOLUME_THRESHOLD else 'Medium',
+                    'estimated_traffic': int(cluster.total_volume * TRAFFIC_CAPTURE_RATE)
                 })
                 
                 piece_count += 1
